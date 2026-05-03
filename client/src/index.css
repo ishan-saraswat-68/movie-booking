@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0B0F1A;
+    color: #E2E8F0;
+    @apply font-sans antialiased;
+  }
+  * {
+    @apply box-border;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-gradient-to-br from-[#7C3AED] to-[#9333EA] hover:shadow-neon-purple text-white font-bold py-2 px-8 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95;
+  }
+  .btn-accent {
+    @apply bg-gradient-to-br from-[#22D3EE] to-[#0891B2] hover:shadow-neon-cyan text-white font-bold py-2 px-8 rounded-full transition-all duration-300 transform hover:scale-105 active:scale-95;
+  }
+  .btn-outline {
+    @apply border-2 border-[#7C3AED] text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white hover:shadow-neon-purple font-bold py-2 px-8 rounded-full transition-all duration-300;
+  }
+  .input-field {
+    @apply w-full bg-[#0B0F1A]/50 border border-white/10 rounded-xl px-4 py-3 text-[#E2E8F0] placeholder-[#94A3B8] focus:outline-none focus:border-[#22D3EE] focus:shadow-neon-cyan transition-all duration-300 backdrop-blur-md;
+  }
+  .card {
+    @apply bg-[#111827] border border-white/5 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300;
+  }
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  .neon-text-purple {
+    text-shadow: 0 0 10px #7C3AED;
+  }
+  .neon-text-cyan {
+    text-shadow: 0 0 10px #22D3EE;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0B0F1A; }
+::-webkit-scrollbar-thumb { 
+  background: linear-gradient(180deg, #7C3AED, #22D3EE); 
+  border-radius: 4px; 
+}
+
+/* Animations */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+.animate-glow {
+  animation: glow-pulse 2s infinite ease-in-out;
+}
