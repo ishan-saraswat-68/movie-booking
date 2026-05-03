@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../utils/api';
-import { FaStar, FaClock, FaCalendar, FaLanguage, FaTicketAlt, FaChevronLeft } from 'react-icons/fa';
+import { FaStar, FaClock, FaCalendar, FaLanguage, FaTicketAlt, FaChevronLeft, FaPlay } from 'react-icons/fa';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -110,10 +110,20 @@ export default function MovieDetails() {
                 {movie.description}
               </p>
               
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <a href="#booking" className="btn-primary flex items-center gap-3 py-4 px-12 shadow-neon-purple text-lg">
                   <FaTicketAlt /> Book Now
                 </a>
+                {movie.trailer && (
+                  <a
+                    href={movie.trailer}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 py-4 px-8 rounded-full border-2 border-accent/40 text-accent hover:bg-accent hover:text-dark font-bold text-lg transition-all duration-300 hover:shadow-neon-cyan group"
+                  >
+                    <FaPlay className="group-hover:scale-125 transition-transform" /> Watch Trailer
+                  </a>
+                )}
                 {movie.director && (
                   <div className="glass px-6 py-2 rounded-full">
                     <span className="text-muted text-xs uppercase tracking-widest block">Directed By</span>
