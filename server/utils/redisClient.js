@@ -21,10 +21,23 @@ const fallback = {
 
 async function connectRedis() {
   try {
+    // Only try to connect if REDIS_URL is provided or we are explicitly in dev mode
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd && !process.env.REDIS_URL) {
+      throw new Error('No REDIS_URL in production');
+    }
+
     redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379'
+      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (retries > 3) return new Error('Max retries reached');
+          return 1000;
+        }
+      }
     });
-    redisClient.on('error', (err) => console.error('Redis Client Error', err));
+    
+    redisClient.on('error', (err) => console.error('Redis Client Error', err.message));
     await redisClient.connect();
     redisAvailable = true;
     console.log('✅ Redis connected');
