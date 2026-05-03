@@ -57,10 +57,6 @@ export default function Home() {
                 <FaTicketAlt className="group-hover:rotate-12 transition-transform" />
                 Book Now
               </button>
-              <button className="btn-outline flex items-center gap-3 py-4 px-10 border-white/10 text-white hover:bg-white/10">
-                <FaPlay className="text-accent" />
-                Watch Trailer
-              </button>
             </div>
           </div>
         </div>
