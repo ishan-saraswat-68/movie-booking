@@ -87,7 +87,7 @@ export default function MovieDetails() {
           const ytId = getYouTubeId(movie.trailer);
           if (!ytId) return null;
           return (
-            <div className="absolute inset-0 scale-[1.5] blur-[3px] pointer-events-none z-[1]">
+            <div className="absolute inset-0 scale-[1.5] blur-[1px] pointer-events-none z-[1]">
               <iframe
                 src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&showinfo=0&modestbranding=1&rel=0&disablekb=1&playsinline=1`}
                 className="w-full h-full"
@@ -98,7 +98,7 @@ export default function MovieDetails() {
             </div>
           );
         })()}
-        <div className="absolute inset-0 bg-gradient-to-t from-dark via-dark/90 to-dark/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-dark via-dark/70 to-dark/30" />
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 h-full flex items-end pb-12">
           <button 
