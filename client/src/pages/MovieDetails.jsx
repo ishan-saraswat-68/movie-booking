@@ -72,33 +72,30 @@ export default function MovieDetails() {
     <div className="bg-dark min-h-screen">
       {/* Cinematic Hero */}
       <div className="relative h-[500px] md:h-[600px] w-full overflow-hidden">
+        {/* Poster always renders as the base fallback layer */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-110 blur-[2px]"
+          style={{ backgroundImage: `url(${movie.poster})` }}
+        />
+        {/* YouTube trailer overlays on top if available */}
         {(() => {
-          // Extract YouTube video ID from trailer URL
           const getYouTubeId = (url) => {
             if (!url) return null;
             const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
             return match ? match[1] : null;
           };
           const ytId = getYouTubeId(movie.trailer);
-          
-          if (ytId) {
-            return (
-              <div className="absolute inset-0 scale-[1.5] blur-md pointer-events-none">
-                <iframe
-                  src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&showinfo=0&modestbranding=1&rel=0&disablekb=1&playsinline=1`}
-                  className="w-full h-full"
-                  style={{ border: 'none' }}
-                  allow="autoplay; encrypted-media"
-                  title="Background Trailer"
-                />
-              </div>
-            );
-          }
+          if (!ytId) return null;
           return (
-            <div 
-              className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-110 blur-sm"
-              style={{ backgroundImage: `url(${movie.poster})` }}
-            />
+            <div className="absolute inset-0 scale-[1.5] blur-[3px] pointer-events-none z-[1]">
+              <iframe
+                src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&showinfo=0&modestbranding=1&rel=0&disablekb=1&playsinline=1`}
+                className="w-full h-full"
+                style={{ border: 'none' }}
+                allow="autoplay; encrypted-media"
+                title="Background Trailer"
+              />
+            </div>
           );
         })()}
         <div className="absolute inset-0 bg-gradient-to-t from-dark via-dark/90 to-dark/40" />
