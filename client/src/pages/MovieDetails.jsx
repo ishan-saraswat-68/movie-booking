@@ -71,11 +71,36 @@ export default function MovieDetails() {
   return (
     <div className="bg-dark min-h-screen">
       {/* Cinematic Hero */}
-      <div className="relative h-[500px] md:h-[600px] w-full">
-        <div 
-          className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-110 blur-sm"
-          style={{ backgroundImage: `url(${movie.poster})` }}
-        />
+      <div className="relative h-[500px] md:h-[600px] w-full overflow-hidden">
+        {(() => {
+          // Extract YouTube video ID from trailer URL
+          const getYouTubeId = (url) => {
+            if (!url) return null;
+            const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+            return match ? match[1] : null;
+          };
+          const ytId = getYouTubeId(movie.trailer);
+          
+          if (ytId) {
+            return (
+              <div className="absolute inset-0 scale-[1.5] blur-md pointer-events-none">
+                <iframe
+                  src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&loop=1&playlist=${ytId}&controls=0&showinfo=0&modestbranding=1&rel=0&disablekb=1&playsinline=1`}
+                  className="w-full h-full"
+                  style={{ border: 'none' }}
+                  allow="autoplay; encrypted-media"
+                  title="Background Trailer"
+                />
+              </div>
+            );
+          }
+          return (
+            <div 
+              className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-110 blur-sm"
+              style={{ backgroundImage: `url(${movie.poster})` }}
+            />
+          );
+        })()}
         <div className="absolute inset-0 bg-gradient-to-t from-dark via-dark/90 to-dark/40" />
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 h-full flex items-end pb-12">
