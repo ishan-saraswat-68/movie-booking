@@ -64,7 +64,7 @@ export default function MyBookings() {
                 </div>
                 <p className="text-muted text-sm">{booking.show.theatre.name}, {booking.show.theatre.city}</p>
                 <p className="text-gray-300 text-sm">
-                  {format(new Date(booking.show.date), 'EEE, dd MMM yyyy')} · {booking.show.time}
+                  {format(new Date(booking.show.date.substring(0, 10) + 'T00:00:00'), 'EEE, dd MMM yyyy')} · {booking.show.time}
                 </p>
                 <p className="text-gray-400 text-sm mt-1">Seats: <span className="text-white">{booking.seats.join(', ')}</span></p>
                 <div className="flex items-center justify-between mt-3">

@@ -52,7 +52,7 @@ export default function BookingConfirmation() {
           <div className="grid grid-cols-2 gap-4">
             <Detail label="Theatre" value={show.theatre.name} />
             <Detail label="City" value={show.theatre.city} />
-            <Detail label="Date" value={format(new Date(show.date), 'dd MMM yyyy')} />
+            <Detail label="Date" value={format(new Date(show.date.substring(0, 10) + 'T00:00:00'), 'dd MMM yyyy')} />
             <Detail label="Time" value={show.time} />
             <Detail label="Language" value={show.language} />
             <Detail label="Format" value={show.format} />

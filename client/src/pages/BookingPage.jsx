@@ -183,7 +183,7 @@ export default function BookingPage() {
           <h1 className="text-4xl font-black text-white uppercase italic tracking-tighter mb-1 neon-text-purple">{show.movie.title}</h1>
           <div className="flex flex-wrap justify-center md:justify-start gap-4 text-muted font-bold text-sm">
             <span className="bg-white/5 px-3 py-1 rounded-full">{show.theatre.name}</span>
-            <span className="bg-white/5 px-3 py-1 rounded-full text-accent">{format(new Date(show.date), 'EEE, dd MMM')}</span>
+            <span className="bg-white/5 px-3 py-1 rounded-full text-accent">{format(new Date(show.date.substring(0, 10) + 'T00:00:00'), 'EEE, dd MMM')}</span>
             <span className="bg-white/5 px-3 py-1 rounded-full text-primary">{show.time}</span>
           </div>
         </div>

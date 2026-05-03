@@ -70,7 +70,7 @@ export default function AdminShows() {
               <tr key={show._id} className="border-b border-gray-800 hover:bg-gray-800/30">
                 <td className="py-3 px-4 text-white font-medium">{show.movie?.title}</td>
                 <td className="py-3 px-4 text-gray-300">{show.theatre?.name}</td>
-                <td className="py-3 px-4 text-gray-300">{format(new Date(show.date), 'dd MMM yyyy')}</td>
+                <td className="py-3 px-4 text-gray-300">{format(new Date(show.date.substring(0, 10) + 'T00:00:00'), 'dd MMM yyyy')}</td>
                 <td className="py-3 px-4 text-gray-300">{show.time}</td>
                 <td className="py-3 px-4"><span className="bg-dark px-2 py-0.5 rounded text-primary text-xs">{show.format}</span></td>
                 <td className="py-3 px-4 text-gray-300">{show.totalSeats - show.bookedSeats.length}/{show.totalSeats}</td>
