@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { socket } from '../utils/socket';
 import SeatLayout from '../components/SeatLayout';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -20,17 +21,57 @@ export default function BookingPage() {
   const navigate = useNavigate();
   const [show, setShow] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
+  const [lockedSeats, setLockedSeats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
+  const [paymentTimer, setPaymentTimer] = useState(null);
+  const timerRef = useRef(null);
 
   useEffect(() => {
     fetchShow();
+
+    // Socket Setup
+    socket.connect();
+    socket.emit('join-show', showId);
+
+    const handleSeatLocked = ({ seatId, userId }) => {
+      setLockedSeats((prev) => [...new Set([...prev, seatId])]);
+    };
+
+    const handleSeatUnlocked = ({ seatId }) => {
+      setLockedSeats((prev) => prev.filter((s) => s !== seatId));
+    };
+
+    const handleSeatBooked = ({ seatId }) => {
+      setShow((prevShow) => {
+        if (!prevShow) return prevShow;
+        return {
+          ...prevShow,
+          bookedSeats: [...new Set([...prevShow.bookedSeats, seatId])],
+        };
+      });
+      setLockedSeats((prev) => prev.filter((s) => s !== seatId));
+    };
+
+    socket.on('seat-locked', handleSeatLocked);
+    socket.on('seat-unlocked', handleSeatUnlocked);
+    socket.on('seat-booked', handleSeatBooked);
+
+    return () => {
+      socket.off('seat-locked', handleSeatLocked);
+      socket.off('seat-unlocked', handleSeatUnlocked);
+      socket.off('seat-booked', handleSeatBooked);
+      socket.disconnect();
+    };
   }, [showId]);
 
   const fetchShow = async () => {
     try {
       const res = await api.get(`/shows/${showId}`);
       setShow(res.data.show);
+      if (res.data.show.lockedSeats) {
+        setLockedSeats(res.data.show.lockedSeats);
+      }
     } catch {
       navigate('/');
     } finally {
@@ -38,10 +79,20 @@ export default function BookingPage() {
     }
   };
 
-  const handleSeatToggle = (seatId) => {
-    setSelectedSeats((prev) =>
-      prev.includes(seatId) ? prev.filter((s) => s !== seatId) : [...prev, seatId]
-    );
+  const handleSeatToggle = async (seatId, isSelected) => {
+    try {
+      if (isSelected) {
+        // Unlock
+        await api.post(`/shows/${showId}/unlock`, { seatId });
+        setSelectedSeats((prev) => prev.filter((s) => s !== seatId));
+      } else {
+        // Lock
+        await api.post(`/shows/${showId}/lock`, { seatId });
+        setSelectedSeats((prev) => [...prev, seatId]);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to lock/unlock seat');
+    }
   };
 
   const calculateTotal = () => {
@@ -52,9 +103,9 @@ export default function BookingPage() {
     }, 0);
   };
 
-  const handleBooking = async () => {
-    if (selectedSeats.length === 0) return toast.error('Transmission requires seat selection.');
+  const executeBooking = async () => {
     try {
+      setPaymentTimer(null);
       setBooking(true);
       const res = await api.post('/bookings', {
         showId,
@@ -65,10 +116,50 @@ export default function BookingPage() {
       navigate(`/booking-confirmation/${res.data.booking._id}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Uplink failed. Please retry.');
-    } finally {
       setBooking(false);
     }
   };
+
+  const handleBooking = () => {
+    if (selectedSeats.length === 0) return toast.error('Transmission requires seat selection.');
+    setPaymentTimer(10);
+    
+    timerRef.current = setInterval(() => {
+      setPaymentTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          executeBooking();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleCancelPayment = async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setPaymentTimer(null);
+    
+    const currentSeats = [...selectedSeats];
+    setSelectedSeats([]); // Optimistically clear UI
+    
+    try {
+      await Promise.all(
+        currentSeats.map(seatId => api.post(`/shows/${showId}/unlock`, { seatId }))
+      );
+      toast('Payment Aborted & Seats Released', { icon: '🛑' });
+    } catch (err) {
+      console.error('Failed to unlock seats on cancel', err);
+      toast('Payment Aborted', { icon: '🛑' });
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   if (loading) return (
     <div className="flex justify-center items-center h-screen bg-dark">
@@ -116,6 +207,7 @@ export default function BookingPage() {
              <SeatLayout
                bookedSeats={show.bookedSeats}
                selectedSeats={selectedSeats}
+               lockedSeats={lockedSeats}
                onSeatToggle={handleSeatToggle}
              />
           </div>
@@ -180,20 +272,40 @@ export default function BookingPage() {
                     <span className="text-3xl font-black text-white neon-text-purple">₹{totalAmount}</span>
                   </div>
                   
-                  <button
-                    onClick={handleBooking}
-                    disabled={booking}
-                    className="btn-primary w-full py-5 rounded-2xl flex items-center justify-center gap-3 text-lg shadow-neon-purple group"
-                  >
-                    {booking ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        Initialize Payment
-                        <span className="group-hover:translate-x-1 transition-transform">→</span>
-                      </>
-                    )}
-                  </button>
+                  {paymentTimer !== null ? (
+                    <div className="space-y-3">
+                      <div className="w-full bg-dark rounded-full h-2 mb-2 overflow-hidden border border-white/5">
+                        <div 
+                          className="bg-accent h-2 rounded-full transition-all duration-1000 ease-linear shadow-neon-cyan" 
+                          style={{ width: `${(paymentTimer / 10) * 100}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-accent animate-pulse">Processing... {paymentTimer}s</span>
+                        <button 
+                          onClick={handleCancelPayment}
+                          className="text-[10px] font-black uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          Abort
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleBooking}
+                      disabled={booking}
+                      className="btn-primary w-full py-5 rounded-2xl flex items-center justify-center gap-3 text-lg shadow-neon-purple group"
+                    >
+                      {booking ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          Initialize Payment
+                          <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (

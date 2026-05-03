@@ -9,7 +9,7 @@ const getSeatCategory = (row) => {
   return { label: 'Silver', key: 'silver' };
 };
 
-export default function SeatLayout({ bookedSeats = [], selectedSeats, onSeatToggle }) {
+export default function SeatLayout({ bookedSeats = [], selectedSeats, lockedSeats = [], onSeatToggle }) {
   return (
     <div className="w-full select-none">
       {/* Futuristic Screen */}
@@ -24,6 +24,7 @@ export default function SeatLayout({ bookedSeats = [], selectedSeats, onSeatTogg
         {[
           { label: 'Available', className: 'bg-dark border-white/10' },
           { label: 'Selected', className: 'bg-primary border-white/20 shadow-neon-purple' },
+          { label: 'Locked', className: 'bg-orange-500/20 border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.5)]' },
           { label: 'Booked', className: 'bg-white/5 border-white/5 opacity-30' },
         ].map(({ label, className }) => (
           <div key={label} className="flex items-center gap-3">
@@ -54,18 +55,20 @@ export default function SeatLayout({ bookedSeats = [], selectedSeats, onSeatTogg
                   {Array.from({ length: COLS }, (_, i) => {
                     const seatId = `${row}${i + 1}`;
                     const isBooked = bookedSeats.includes(seatId);
+                    const isLocked = lockedSeats.includes(seatId);
                     const isSelected = selectedSeats.includes(seatId);
                     
                     return (
                       <button
                         key={seatId}
-                        disabled={isBooked}
-                        onClick={() => !isBooked && onSeatToggle(seatId)}
+                        disabled={isBooked || (isLocked && !isSelected)}
+                        onClick={() => !isBooked && onSeatToggle(seatId, isSelected)}
                         title={seatId}
                         className={`
                           w-8 h-8 md:w-10 md:h-10 rounded-xl border-2 text-[10px] font-black transition-all duration-300 transform
                           ${isBooked ? 'bg-white/5 border-transparent opacity-20 cursor-not-allowed scale-90' :
                             isSelected ? 'bg-primary border-white/30 text-white shadow-neon-purple scale-110 rotate-3 z-10' :
+                            isLocked ? 'bg-orange-500/20 border-orange-500 text-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.5)] cursor-not-allowed scale-95' :
                               'bg-card border-white/5 text-muted hover:border-accent/50 hover:text-white hover:shadow-neon-cyan hover:-translate-y-1 cursor-pointer'}
                         `}
                       >

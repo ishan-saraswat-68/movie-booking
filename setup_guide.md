@@ -1,5 +1,11 @@
 # 🚀 Project Setup & MongoDB Guide
 
+### Prerequisites
+- Node.js (v18 or higher)
+- MongoDB (Running locally on port 27017)
+- Redis (Running locally on port 6379)
+- Git
+
 > [!IMPORTANT]
 > **UPDATE:** I have already performed the MongoDB installation and setup for you. MongoDB is now running locally on your Mac, and the database has been seeded with sample data.
 

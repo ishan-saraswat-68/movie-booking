@@ -2,6 +2,7 @@ const express = require('express');
 const Booking = require('../models/Booking');
 const Show = require('../models/Show');
 const { protect, adminOnly } = require('../middleware/auth');
+const { redisClient } = require('../utils/redisClient');
 
 const router = express.Router();
 
@@ -33,6 +34,13 @@ router.post('/', protect, async (req, res) => {
       totalAmount,
       paymentStatus: 'completed', // Simulate payment success
     });
+
+    // Clear Redis locks for these seats
+    const key = `seat_lock:${showId}`;
+    for (const seatId of seats) {
+      await redisClient.hDel(key, seatId);
+      req.io.to(showId).emit('seat-booked', { seatId });
+    }
 
     await booking.populate([
       { path: 'show', populate: [{ path: 'movie', select: 'title poster' }, { path: 'theatre', select: 'name city' }] },
