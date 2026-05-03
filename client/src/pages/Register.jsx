@@ -16,14 +16,15 @@ export default function Register() {
     return () => dispatch(clearError());
   }, [user]);
 
-  useEffect(() => {
-    if (error) toast.error(error);
-  }, [error]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) return toast.error('Encryption keys do not match!');
-    dispatch(registerUser({ name: form.name, email: form.email, phone: form.phone, password: form.password }));
+    try {
+      await dispatch(registerUser({ name: form.name, email: form.email, phone: form.phone, password: form.password })).unwrap();
+      toast.success('Identity Created Successfully!');
+    } catch (err) {
+      toast.error(err || 'Registration failed');
+    }
   };
 
   const field = (key, label, type = 'text', placeholder = '', Icon) => (

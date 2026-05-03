@@ -20,7 +20,7 @@ const movies = [
     language: ['Hindi', 'Telugu', 'Tamil'],
     duration: 201,
     releaseDate: new Date('2023-12-01'),
-    poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800',
+    poster: 'https://m.media-amazon.com/images/M/MV5BZThmNDg1NjUtNWJhMC00YjA3LWJiMjItNmM4ZDQ5ZGZiN2Y2XkEyXkFqcGc@._V1_QL75_UY281_CR18,0,190,281_.jpg',
     director: 'Sandeep Reddy Vanga',
     rating: 7.0,
     totalReviews: 45000,
@@ -32,7 +32,7 @@ const movies = [
     language: ['Hindi', 'Tamil', 'Telugu'],
     duration: 146,
     releaseDate: new Date('2023-01-25'),
-    poster: 'https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=800',
+    poster: 'https://m.media-amazon.com/images/M/MV5BNDdkNTY1MDQtY2I5MC00OTFlLTg5OWQtZWE2YzE5NWFiMDgzXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
     director: 'Siddharth Anand',
     rating: 5.9,
     totalReviews: 38000,
@@ -44,7 +44,7 @@ const movies = [
     language: ['Hindi', 'Tamil', 'Telugu'],
     duration: 169,
     releaseDate: new Date('2023-09-07'),
-    poster: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=800',
+    poster: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ3OMsQqM_hs8eK5mM8KBCyY8hBfSeJMxGkjQ&s',
     director: 'Atlee',
     rating: 7.0,
     totalReviews: 52000,
@@ -56,7 +56,7 @@ const movies = [
     language: ['Hindi'],
     duration: 168,
     releaseDate: new Date('2023-07-28'),
-    poster: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800',
+    poster: 'https://d3lzcn6mbbadaf.cloudfront.net/media/details/ANI-20231009160655.jpg',
     director: 'Karan Johar',
     rating: 7.2,
     totalReviews: 28000,
@@ -68,7 +68,7 @@ const movies = [
     language: ['Hindi', 'Tamil', 'Telugu'],
     duration: 161,
     releaseDate: new Date('2023-12-21'),
-    poster: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=800',
+    poster: 'https://approachbollywood.com/wp-content/uploads/2023/12/dunki-poster-585x470.jpg',
     director: 'Rajkumar Hirani',
     rating: 6.5,
     totalReviews: 31000,
@@ -80,7 +80,7 @@ const movies = [
     language: ['Tamil', 'Hindi', 'Telugu'],
     duration: 164,
     releaseDate: new Date('2023-10-19'),
-    poster: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=800',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/7/75/Leo_%282023_Indian_film%29.jpg',
     director: 'Lokesh Kanagaraj',
     rating: 7.3,
     totalReviews: 41000,
@@ -92,7 +92,7 @@ const movies = [
     language: ['Telugu', 'Hindi', 'Tamil'],
     duration: 181,
     releaseDate: new Date('2024-06-27'),
-    poster: 'https://images.unsplash.com/photo-1478720568477-152d9b164e26?q=80&w=800',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Kalki_2898_AD.jpg/250px-Kalki_2898_AD.jpg',
     director: 'Nag Ashwin',
     rating: 7.6,
     totalReviews: 62000,
@@ -104,7 +104,7 @@ const movies = [
     language: ['Hindi'],
     duration: 158,
     releaseDate: new Date('2024-08-15'),
-    poster: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?q=80&w=800',
+    poster: 'https://upload.wikimedia.org/wikipedia/en/a/a1/Stree_2.jpg',
     director: 'Amar Kaushik',
     rating: 8.0,
     totalReviews: 74000,
@@ -194,21 +194,19 @@ async function seed() {
   console.log('✔ Shows cleared');
 
   // Create admin user
-  const adminPassword = await bcrypt.hash('admin123', 12);
   const admin = await User.create({
     name: 'Admin User',
     email: 'admin@bookmyshow.com',
-    password: adminPassword,
+    password: 'admin123',
     phone: '9999999999',
     role: 'admin',
   });
 
   // Create sample user
-  const userPassword = await bcrypt.hash('user123', 12);
   await User.create({
     name: 'Demo User',
     email: 'user@bookmyshow.com',
-    password: userPassword,
+    password: 'user123',
     phone: '8888888888',
     role: 'user',
   });

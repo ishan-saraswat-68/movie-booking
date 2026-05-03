@@ -17,13 +17,14 @@ export default function Login() {
     return () => dispatch(clearError());
   }, [user]);
 
-  useEffect(() => {
-    if (error) toast.error(error);
-  }, [error]);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    dispatch(loginUser(form));
+    try {
+      await dispatch(loginUser(form)).unwrap();
+      toast.success('Login Successful');
+    } catch (err) {
+      toast.error(err || 'Login failed');
+    }
   };
 
   return (
