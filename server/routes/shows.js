@@ -2,7 +2,7 @@ const express = require('express');
 const Show = require('../models/Show');
 const Booking = require('../models/Booking');
 const { protect, adminOnly } = require('../middleware/auth');
-const { redisClient } = require('../utils/redisClient');
+const { redisClient, releaseLock } = require('../utils/redisClient');
 
 const router = express.Router();
 
@@ -40,10 +40,10 @@ router.get('/:id', async (req, res) => {
       .populate('theatre');
     if (!show) return res.status(404).json({ success: false, message: 'Show not found' });
 
-    // Fetch locked seats from Redis
-    const lockKey = `seat_lock:${show._id}`;
-    const lockedSeatsObj = await redisClient.hGetAll(lockKey);
-    const lockedSeats = Object.keys(lockedSeatsObj);
+    // Fetch active per-seat locks from Redis
+    const prefix = `lock:show:${show._id}:seat:`;
+    const lockKeys = await redisClient.keys(`${prefix}*`);
+    const lockedSeats = (lockKeys || []).map((key) => key.slice(prefix.length));
 
     // Merge lockedSeats into the response
     const showData = show.toObject();
@@ -61,26 +61,33 @@ router.post('/:id/lock', protect, async (req, res) => {
     const { seatId } = req.body;
     const showId = req.params.id;
     const userId = req.user._id.toString();
-    const key = `seat_lock:${showId}`;
 
-    // Check if already locked in Redis
-    const lockedBy = await redisClient.hGet(key, seatId);
-    if (lockedBy && lockedBy !== userId) {
-      return res.status(400).json({ success: false, message: 'Seat already locked' });
+    if (!seatId) {
+      return res.status(400).json({ success: false, message: 'seatId is required' });
     }
 
-    // Check if already booked in MongoDB
+    // 1. Check if already booked in MongoDB
     const show = await Show.findById(showId);
-    if (!show || show.bookedSeats.includes(seatId)) {
+    if (!show) {
+      return res.status(404).json({ success: false, message: 'Show not found' });
+    }
+    if (show.bookedSeats.includes(seatId)) {
       return res.status(400).json({ success: false, message: 'Seat already booked' });
     }
 
-    // Lock seat
-    await redisClient.hSet(key, seatId, userId);
-    // Refresh TTL
-    await redisClient.expire(key, 300); // 5 minutes
+    // 2. ATOMIC LOCK ACQUISITION in Redis (NX: only set if Not eXists, EX: 300s TTL)
+    const lockKey = `lock:show:${showId}:seat:${seatId}`;
+    const acquired = await redisClient.set(lockKey, userId, { NX: true, EX: 300 });
 
-    // Emit event
+    if (!acquired) {
+      // Check if current user is the one who already holds this lock
+      const currentHolder = await redisClient.get(lockKey);
+      if (currentHolder !== userId) {
+        return res.status(400).json({ success: false, message: 'Seat is currently locked by another user' });
+      }
+    }
+
+    // 3. Emit real-time lock event to room
     req.io.to(showId).emit('seat-locked', { seatId, userId });
 
     res.json({ success: true, message: 'Seat locked' });
@@ -95,11 +102,16 @@ router.post('/:id/unlock', protect, async (req, res) => {
     const { seatId } = req.body;
     const showId = req.params.id;
     const userId = req.user._id.toString();
-    const key = `seat_lock:${showId}`;
+    const lockKey = `lock:show:${showId}:seat:${seatId}`;
 
-    const lockedBy = await redisClient.hGet(key, seatId);
-    if (lockedBy === userId) {
-      await redisClient.hDel(key, seatId);
+    if (!seatId) {
+      return res.status(400).json({ success: false, message: 'seatId is required' });
+    }
+
+    // Safe unlock: atomically delete only if value equals userId
+    const released = await releaseLock(lockKey, userId);
+
+    if (released) {
       req.io.to(showId).emit('seat-unlocked', { seatId });
     }
 

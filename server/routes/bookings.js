@@ -2,7 +2,7 @@ const express = require('express');
 const Booking = require('../models/Booking');
 const Show = require('../models/Show');
 const { protect, adminOnly } = require('../middleware/auth');
-const { redisClient } = require('../utils/redisClient');
+const { redisClient, releaseLock } = require('../utils/redisClient');
 
 const router = express.Router();
 
@@ -10,23 +10,49 @@ const router = express.Router();
 router.post('/', protect, async (req, res) => {
   try {
     const { showId, seats, totalAmount } = req.body;
+    const userId = req.user._id.toString();
 
-    const show = await Show.findById(showId);
-    if (!show) return res.status(404).json({ success: false, message: 'Show not found' });
+    if (!showId || !seats || !Array.isArray(seats) || seats.length === 0) {
+      return res.status(400).json({ success: false, message: 'Invalid show or seat selection' });
+    }
 
-    // Check if any seat is already booked
-    const alreadyBooked = seats.filter((s) => show.bookedSeats.includes(s));
-    if (alreadyBooked.length > 0) {
+    // 1. VERIFY REDIS LOCK OWNERSHIP FOR ALL REQUESTED SEATS
+    for (const seatId of seats) {
+      const lockKey = `lock:show:${showId}:seat:${seatId}`;
+      const lockOwner = await redisClient.get(lockKey);
+      
+      // Also check fallback legacy hash key for backwards compatibility
+      const legacyOwner = !lockOwner ? await redisClient.hGet(`seat_lock:${showId}`, seatId) : null;
+      const effectiveOwner = lockOwner || legacyOwner;
+
+      if (effectiveOwner !== userId) {
+        return res.status(400).json({
+          success: false,
+          message: `Seat ${seatId} lock has expired or is not reserved by you. Please select seats again.`,
+        });
+      }
+    }
+
+    // 2. ATOMIC MONGODB CONDITIONAL UPDATE ($nin ensures NONE of the seats are already booked)
+    const updatedShow = await Show.findOneAndUpdate(
+      {
+        _id: showId,
+        bookedSeats: { $nin: seats },
+      },
+      {
+        $push: { bookedSeats: { $each: seats } },
+      },
+      { new: true }
+    );
+
+    if (!updatedShow) {
       return res.status(400).json({
         success: false,
-        message: `Seats ${alreadyBooked.join(', ')} are already booked`,
+        message: 'One or more selected seats have already been booked by another user.',
       });
     }
 
-    // Mark seats as booked
-    show.bookedSeats.push(...seats);
-    await show.save();
-
+    // 3. CREATE BOOKING RECORD
     const booking = await Booking.create({
       user: req.user._id,
       show: showId,
@@ -35,10 +61,11 @@ router.post('/', protect, async (req, res) => {
       paymentStatus: 'completed', // Simulate payment success
     });
 
-    // Clear Redis locks for these seats
-    const key = `seat_lock:${showId}`;
+    // 4. ATOMIC / SAFE UNLOCK: Release Redis locks and emit seat-booked event
     for (const seatId of seats) {
-      await redisClient.hDel(key, seatId);
+      const lockKey = `lock:show:${showId}:seat:${seatId}`;
+      await releaseLock(lockKey, userId);
+      await redisClient.hDel(`seat_lock:${showId}`, seatId);
       req.io.to(showId).emit('seat-booked', { seatId });
     }
 
@@ -101,10 +128,10 @@ router.put('/:id/cancel', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Booking already cancelled' });
     }
 
-    // Release seats
-    const show = await Show.findById(booking.show);
-    show.bookedSeats = show.bookedSeats.filter((s) => !booking.seats.includes(s));
-    await show.save();
+    // Atomically release seats from show
+    await Show.findByIdAndUpdate(booking.show, {
+      $pull: { bookedSeats: { $in: booking.seats } }
+    });
 
     booking.status = 'cancelled';
     booking.paymentStatus = 'refunded';
